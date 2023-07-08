@@ -1,1 +1,10 @@
+Extracting Data
 
+import re
+x = 'From: Using the: character'
+y = re.findall('^F.+?:',x) #Non-Greedy match
+y = re.findall('^F.+:',x) #Greedy match
+
+y =re.findall('\S+@\w+',x) #Find email address
+y = re.findall('^From (\S+@\S+)',x) #get ['stephen.marquard@uct.ac.za']]
+y = re.findall('@([^ ]*, lin) #matching non-blank character
