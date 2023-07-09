@@ -10,3 +10,122 @@ for line in fhand:
 print(counts)
 
 
+
+
+def to_csv(df):
+  name = input('Input the doc name you want to save, (eg: HSI.csv)')
+  return df.to_csv(name)
+
+def data_for_single_date():
+  import numpy as np
+  import requests
+  from bs4 import BeautifulSoup
+  import pandas as pd
+  import re
+  import warnings
+  warnings.simplefilter(action='ignore', category=FutureWarning)
+  ticker = str(input('Input the target Stock Ticker(eg:00273)'))
+  date = input('Input the date (eg:2000-01-01)')
+
+  url = 'https://webb-site.com/ccass/choldings.asp?sort=holddn&i=0&sc=' + ticker + '&d=' + date
+  try:
+    page = requests.get(url)
+
+
+    soup = BeautifulSoup(page.text, 'html.parser')
+    table = soup.find('table', class_='optable yscroll')
+    column_headers = ['Name', 'Stake%']
+    df = pd.DataFrame(columns = column_headers)
+
+    name=''
+    stake=''
+    rows = table.find_all('tr')
+
+    top_stakeholders = int(input('Input the top n stakeholders in you want to check (eg:15, the max number of stakeholders is {})'.format(len(rows)-1)))
+    print("retrieving required data from CCASS about top {} stakeholders of {} on {}\n".format(top_stakeholders,ticker,date))
+    for row in rows[1:top_stakeholders+1]:
+      i = 0
+      for td in row.find_all('td'):
+
+        i = i+1
+        if(i==3):
+          name = td.text.replace('\n', '')
+        if(i==6):
+          stake = re.findall('\S+',td.text)[0]
+      df = df.append(pd.Series(data=[name,stake],index = column_headers),ignore_index = True)
+    df.index = np.arange(1, len(df) + 1)
+    print('Web scraping completed. You may call to_csv() function to download data with scv format/n')
+    return df
+  except:
+    return print('Either input is in the wrong format or out of value is out of range')
+
+
+def data_for_continous_date():
+  import numpy as np
+  import requests
+  from bs4 import BeautifulSoup
+  import pandas as pd
+  import re
+  from datetime import datetime, date, timedelta
+  import warnings
+  warnings.simplefilter(action='ignore', category=FutureWarning)
+  ticker = str(input('Input the target Stock Ticker(eg:00273)'))
+  date = input('Input the starting date (eg:2000-01-01)')
+  end_date = input('Input the ending date (eg:2000-02-01)')
+  url = 'https://webb-site.com/ccass/choldings.asp?sort=holddn&i=0&sc=' + ticker + '&d=' + date
+  print('\n')
+  print('retrieving required data from CCASS\n')
+  try:
+    page = requests.get(url)
+    soup = BeautifulSoup(page.text, 'html.parser')
+    table = soup.find('table', class_='optable yscroll')
+    column_headers = ['Name{}'.format(date), 'Stake%{}'.format(date)]
+    df = pd.DataFrame(columns = column_headers)
+    name=''
+    stake=''
+
+    rows = table.find_all('tr')
+    top_stakeholders = int(input('Input the top n stakeholders in you want to check (eg:15, the max number of stakeholders is {})'.format(len(rows)-1)))
+    for row in rows[1:top_stakeholders+1]:
+      i = 0
+      for td in row.find_all('td'):
+
+        i = i+1
+        if(i==3):
+          name = td.text.replace('\n', '')
+        if(i==6):
+          stake = re.findall('\S+',td.text)[0]
+      df = df.append(pd.Series(data=[name,stake],index = column_headers),ignore_index = True)
+    df.index = np.arange(1, len(df) + 1)
+    sd = datetime.strptime(date, '%Y-%m-%d').date()
+    ed = datetime.strptime(end_date, '%Y-%m-%d').date()
+    delta = timedelta(days=1)
+    while (sd < ed):
+      sd += delta
+      date = str(sd)
+      page = requests.get(url)
+      soup = BeautifulSoup(page.text, 'html.parser')
+      table = soup.find('table', class_='optable yscroll')
+      column_headers = ['Name{}'.format(date), 'Stake%{}'.format(date)]
+      tdf = pd.DataFrame(columns = column_headers)
+      name=''
+      stake=''
+      rows = table.find_all('tr')
+      for row in rows[1:top_stakeholders+1]:
+        i = 0
+        for td in row.find_all('td'):
+          i = i+1
+          if(i==3):
+            name = td.text.replace('\n', '')
+          if(i==6):
+            stake = re.findall('\S+',td.text)[0]
+        tdf = tdf.append(pd.Series(data=[name,stake],index = column_headers),ignore_index = True)
+      tdf.index = np.arange(1, len(tdf) + 1)
+      df = df.join(tdf)
+      print('\n')
+      print('data scraping completed. You may call to_csv() function to download data with scv format')
+    return df
+  except:
+    return print('Either input is in the wrong format or out of value is out of range')
+
+
