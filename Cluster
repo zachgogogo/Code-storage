@@ -1,0 +1,15 @@
+
+
+
+Here are some Python libraries that can be used to calculate matching scores for a name with a list of reference table:
+
+FuzzyWuzzy: FuzzyWuzzy is a Python library used for string matching. Fuzzy string matching is the process of finding strings that are approximately equal to a given pattern.
+Jellyfish: Jellyfish is a python library for doing approximate and phonetic matching of strings.
+PyStringMatch: PyStringMatch is a simple Python library for approximate string matching.
+textdistance: Textdistance is a python library for comparing distance between two or more sequences by many algorithms.
+difflib: Difflib is a Python module provides classes and functions for comparing sequences, including HTML and context and unified diffs.
+Levenshtein: Levenshtein Python C extension module contains functions for fast computation of Levenshtein (edit) distance, and edit operations.
+DeepMatcher: DeepMatcher is a python package for performing entity and text matching using deep learning.
+recordlinkage: This Python library is a tool for linking records in or between data sources.
+pandas-dedupe: pandas-dedupe is a Python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution on structured data.
+Double Metaphone (via the metaphone package): Double Metaphone is an algorithm developed by Lawrence Philips which is based on an earlier algorithm called Metaphone. It’s used for phonetic comparisons of strings.
