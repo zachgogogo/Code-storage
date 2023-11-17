@@ -1,0 +1,445 @@
+#Developer info
+'''
+
+doggy_bro
+personal use script
+
+id: pFYFhjhvGtR5bpYeMuhe9g
+
+secret:	SYpnEqFQy80r1TyUiQa3gztjQ4bYlw
+
+
+developers
+Zaaaaccck (that's you!)
+
+'''
+
+
+
+
+%pip install praw
+%pip install pandas
+%pip install numpy
+%pip install seaborn
+%pip install nltk
+
+from pprint import pprint
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import praw
+from praw.models import MoreComments
+import datetime
+import pytz
+import nltk
+nltk.download('vader_lexicon')
+from nltk.sentiment.vader import SentimentIntensityAnalyzer as SIA
+sia = SIA()
+
+
+
+
+
+
+
+#Reddit API connection
+user_agent = "Scraper 1.0 by /u/Zaaaaccck"
+reddit = praw.Reddit(
+    client_id ="pFYFhjhvGtR5bpYeMuhe9g", # May change your own id & key here
+    client_secret = "SYpnEqFQy80r1TyUiQa3gztjQ4bYlw",
+    user_agent = user_agent
+)
+
+
+
+
+
+
+
+
+
+def check_ticker(ticker):
+  import yfinance as yf
+  if len(yf.Ticker(ticker).history("1mo")) > 0:
+    return True
+  else:
+    return False
+
+def utc_to_datetime(utc):
+    timezone = 'America/New_York'
+    utc_dt = datetime.datetime.utcfromtimestamp(utc)
+    utc_dt = pytz.utc.localize(utc_dt)
+    hk_dt = utc_dt.astimezone(pytz.timezone(timezone))
+    return hk_dt.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+def datetime_to_utc(timestring):
+    timezone = 'America/New_York'
+    date_time_obj = datetime.datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
+    date_time_obj = pytz.timezone(timezone).localize(date_time_obj)
+    return date_time_obj.timestamp()
+
+def Sentiment_Analysis(context):
+  results = []
+  for line in context:
+    pol_score = sia.polarity_scores(line)
+    pol_score['text'] = line
+    results.append(pol_score)
+  score = [i['compound'] for i in results]
+  return score
+
+
+
+
+
+
+
+
+
+t = 1699419600.0
+def Reddit_extraction(channel):
+  sub_id, sub_time, sub_title, sub_body , url1, url2, sub_comments_body, sub_comments_id, sub_comments_time, sub_comments_unikey, sub_author , sub_comments_author = [], [], [], [], [], [], [], [], [], [],[],[]
+  bd, cm = [],[]
+  %reload_ext autoreload
+  %autoreload 2
+  import re
+  pattern = r'"(\w+)"'
+  import os 
+  from flair.data import Sentence
+  from flair.models import SequenceTagger
+  os.path.abspath("models/pytorch_model.bin")
+  tagger = SequenceTagger.load("flair/ner-english-ontonotes-large")
+
+
+  NO1_ticker_mentioned_in_textbody = []
+  NO1_ticker_mentioned_in_textbody_quantity = []
+  NO2_ticker_mentioned_in_textbody = []
+  NO2_ticker_mentioned_in_textbody_quantity = []
+  NO3_ticker_mentioned_in_textbody = []
+  NO3_ticker_mentioned_in_textbody_quantity = []
+  NO4_ticker_mentioned_in_textbody = []
+  NO4_ticker_mentioned_in_textbody_quantity = []
+  NO5_ticker_mentioned_in_textbody = []
+  NO5_ticker_mentioned_in_textbody_quantity = []
+
+  NO1_ticker_mentioned_in_comment = []
+  NO1_ticker_mentioned_in_comment_quantity = []
+  NO2_ticker_mentioned_in_comment = []
+  NO2_ticker_mentioned_in_comment_quantity = []
+  NO3_ticker_mentioned_in_comment = []
+  NO3_ticker_mentioned_in_comment_quantity = []
+  NO4_ticker_mentioned_in_comment = []
+  NO4_ticker_mentioned_in_comment_quantity = []
+  NO5_ticker_mentioned_in_comment = []
+  NO5_ticker_mentioned_in_comment_quantity = []
+
+
+#extract submission data
+
+  for submission in reddit.subreddit(channel).new(limit = 50): 
+    sub_id.append(submission.id)
+    sub_author.append(submission.author)
+    sub_time.append(utc_to_datetime(submission.created_utc))
+    sub_title.append(submission.title)
+    url1.append(submission.url)
+    sub_body.append(submission.selftext)
+    bd.append(submission.selftext)
+
+
+
+# tickers mentioned in submission textbody identification
+    body_prediction =[]
+    body_results = []
+    body_sentences = Sentence(submission.selftext)
+    tagger.predict(body_sentences)
+    body_prediction.append(body_sentences)
+
+    for sentence in body_prediction:
+      body_results.append(sentence.get_spans('ner'))
+    b_target_item = [ i for i in body_results[0] if i.tag == 'ORG']
+    b_lst = []
+    for i in b_target_item:
+      try:
+        b_result = re.findall(pattern, str(i))
+        b_lst.append(b_result[0])
+      except:
+        continue
+    b = {x:b_lst.count(x) for x in b_lst}
+    b = sorted(b.items(), key=lambda x: x[1], reverse=True)
+    b_stock_list = []
+    for i in range(len(b)):
+      if check_ticker(b[i][0]) == True:
+        b_stock_list.append(b[i])
+    NO1_ticker_mentioned_in_textbody.append(b_stock_list[0][0] if len(b_stock_list) > 0 else '')
+    NO1_ticker_mentioned_in_textbody_quantity.append(b_stock_list[0][1] if len(b_stock_list) > 0 else '')
+    NO2_ticker_mentioned_in_textbody.append(b_stock_list[1][0] if len(b_stock_list) > 1 else '')
+    NO2_ticker_mentioned_in_textbody_quantity.append(b_stock_list[1][1] if len(b_stock_list) > 1 else '')
+    NO3_ticker_mentioned_in_textbody.append(b_stock_list[2][0] if len(b_stock_list) > 2 else '')
+    NO3_ticker_mentioned_in_textbody_quantity.append(b_stock_list[2][1] if len(b_stock_list) > 2 else '')
+    NO4_ticker_mentioned_in_textbody.append(b_stock_list[3][0] if len(b_stock_list) > 3 else '')
+    NO4_ticker_mentioned_in_textbody_quantity.append(b_stock_list[3][1] if len(b_stock_list) > 3 else '')
+    NO5_ticker_mentioned_in_textbody.append(b_stock_list[4][0] if len(b_stock_list) > 4 else '')
+    NO5_ticker_mentioned_in_textbody_quantity.append(b_stock_list[4][1] if len(b_stock_list) > 4 else '')
+                      
+# extract comment data
+    for top_level_comment in submission.comments:
+      if isinstance(top_level_comment, MoreComments):
+        continue
+      if top_level_comment.created_utc >= t:
+         sub_comments_unikey.append(submission.id)
+         sub_comments_id.append(top_level_comment.id)
+         sub_comments_author.append(top_level_comment.author)
+         sub_comments_time.append(utc_to_datetime(top_level_comment.created_utc))
+         sub_comments_body.append(top_level_comment.body)
+         url2.append(submission.url)
+         cm.append(top_level_comment.body)
+
+         comment_prediction =[]
+         comment_results = []
+         comment_sentences = Sentence(top_level_comment.body)
+         tagger.predict(comment_sentences)
+         comment_prediction.append(comment_sentences)
+         for sentence in comment_prediction:
+             comment_results.append(sentence.get_spans('ner'))
+         c_target_item = [ i for i in comment_results[0] if i.tag == 'ORG']
+         c_lst = []
+         for i in c_target_item:
+             try:
+                 c_result = re.findall(pattern, str(i))
+                 c_lst.append(c_result[0])
+             except:
+                 continue
+         c = {x:c_lst.count(x) for x in c_lst}
+         c = sorted(c.items(), key=lambda x: x[1], reverse=True)
+         c_stock_list = []
+         c_stock_list.clear()
+         for i in range(len(c)):
+            if check_ticker(c[i][0]) == True:
+                   c_stock_list.append(c[i])
+         NO1_ticker_mentioned_in_comment.append(c_stock_list[0][0] if len(c_stock_list) > 0 else '')
+         NO1_ticker_mentioned_in_comment_quantity.append(c_stock_list[0][1] if len(c_stock_list) > 0 else '')
+         NO2_ticker_mentioned_in_comment.append(c_stock_list[1][0] if len(c_stock_list) > 1 else '')
+         NO2_ticker_mentioned_in_comment_quantity.append(c_stock_list[1][1] if len(c_stock_list) > 1 else '')
+         NO3_ticker_mentioned_in_comment.append(c_stock_list[2][0] if len(c_stock_list) > 2 else '')
+         NO3_ticker_mentioned_in_comment_quantity.append(c_stock_list[2][1] if len(c_stock_list) > 2 else '')
+         NO4_ticker_mentioned_in_comment.append(c_stock_list[3][0] if len(c_stock_list) > 3 else '')
+         NO4_ticker_mentioned_in_comment_quantity.append(c_stock_list[3][1] if len(c_stock_list) > 3 else '')
+         NO5_ticker_mentioned_in_comment.append(c_stock_list[4][0] if len(c_stock_list) > 4 else '')
+         NO5_ticker_mentioned_in_comment_quantity.append(c_stock_list[4][1] if len(c_stock_list) > 4 else '')
+
+
+
+# Sentiment Analysis        
+  bd_score = Sentiment_Analysis(bd)
+  cm_score = Sentiment_Analysis(cm)
+
+
+
+  submission_df = pd.DataFrame({"URL": url1, "Submission ID" : sub_id, "Submission Author" : sub_author, "Submission Time": sub_time, "Submission Title" :sub_title, "Submission Body" :sub_body, "1st Mentioned Stock":NO1_ticker_mentioned_in_textbody,"1st Mentioned Stock Frequency": NO1_ticker_mentioned_in_textbody_quantity,"2nd Mentioned Stock":NO2_ticker_mentioned_in_textbody,"2nd Mentioned Stock Frequency": NO2_ticker_mentioned_in_textbody_quantity,"3rd Mentioned Stock":NO3_ticker_mentioned_in_textbody,"3rd Mentioned Stock Frequency": NO3_ticker_mentioned_in_textbody_quantity,"4th Mentioned Stock":NO4_ticker_mentioned_in_textbody,"4th Mentioned Stock Frequency": NO4_ticker_mentioned_in_textbody_quantity, "5th Mentioned Stock":NO5_ticker_mentioned_in_textbody,"5th Mentioned Stock Frequency": NO5_ticker_mentioned_in_textbody_quantity,"Sentiment Score" : bd_score})
+  comments_df = pd.DataFrame({"URL": url2, "Submission ID" : sub_comments_unikey, "Comment ID" : sub_comments_id, "Comment Author" : sub_comments_author, "Comment Created Time": sub_comments_time, "Comment" :sub_comments_body, "1st Mentioned Stock":NO1_ticker_mentioned_in_comment,"1st Mentioned Stock Frequency": NO1_ticker_mentioned_in_comment_quantity,"2nd Mentioned Stock":NO2_ticker_mentioned_in_comment,"2nd Mentioned Stock Frequency": NO2_ticker_mentioned_in_comment_quantity,"3rd Mentioned Stock":NO3_ticker_mentioned_in_comment,"3rd Mentioned Stock Frequency": NO3_ticker_mentioned_in_comment_quantity,"4th Mentioned Stock":NO4_ticker_mentioned_in_comment,"4th Mentioned Stock Frequency": NO4_ticker_mentioned_in_comment_quantity, "5th Mentioned Stock":NO5_ticker_mentioned_in_comment,"5th Mentioned Stock Frequency": NO5_ticker_mentioned_in_comment_quantity,"Sentiment Score" : cm_score})
+  
+  submission_df.loc[submission_df['Sentiment Score'] < - 0.3, 'Sentiment Result'] = "Bearish"
+  submission_df.loc[(-0.3 <= submission_df['Sentiment Score']) & (submission_df['Sentiment Score'] <= 0.3), 'Sentiment Result'] = "Neutral"
+  submission_df.loc[submission_df['Sentiment Score'] > 0.3, 'Sentiment Result'] = "Bullish"
+
+  comments_df.loc[comments_df['Sentiment Score'] < - 0.3, 'Sentiment Result'] = "Bearish"
+  comments_df.loc[ (-0.3 < comments_df['Sentiment Score']) &( comments_df['Sentiment Score'] < 0.3), 'Sentiment Result'] = "Neutral"
+  comments_df.loc[comments_df['Sentiment Score'] >  0.3, 'Sentiment Result'] = "Bullish"
+
+
+
+  return submission_df.to_excel("{} Submission.xlsx".format(channel), index = None), comments_df.to_excel("{} Comment.xlsx".format(channel), index = None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddit_extraction("WallStreetbetsELITE")
+
+
+
+
+
+
+
+
+
+
+
+
+# Sentiment Anaysis
+
+
+def Sentiment_Analysis(context):
+  results = []
+  for line in context:
+    pol_score = sia.polarity_scores(line)
+    pol_score['text'] = line
+    results.append(pol_score)
+  score = [i['compound'] for i in results]
+  return score
+
+def Body_sentiment(channel):
+  bd = set()
+  for submission in reddit.subreddit(channel).new(limit = 200):
+    bd.add(submission.selftext)
+
+  results = []
+  for line in bd:
+    pol_score = sia.polarity_scores(line)
+    pol_score['Body'] = line
+    results.append(pol_score)
+  df_results = pd.DataFrame.from_records(results)
+  df_results['Bullish'] = 0
+  df_results['Bearish'] = 0
+  df_results.loc[df_results['compound'] > 0.3, 'Bullish'] = 1
+  df_results.loc[df_results['compound'] < - 0.3, 'Bearish'] = 1
+  return df_results.to_csv("{} Body sentiment result.csv".format(channel), header = None, encoding ='utf-8', index = None)
+
+def Comment_sentiment(channel):
+  from praw.models import MoreComments
+  cm = set()
+  for submission in reddit.subreddit(channel).new(limit = 200):
+    for top_level_comment in submission.comments:
+      if isinstance(top_level_comment, MoreComments):
+        continue
+      cm.add(top_level_comment.body)
+
+  results = []
+  for line in cm:
+    pol_score = sia.polarity_scores(line)
+    pol_score['Comment'] = line
+    results.append(pol_score)
+  df_results = pd.DataFrame.from_records(results)
+  df_results['Bullish'] = 0
+  df_results['Bearish'] = 0
+  df_results.loc[df_results['compound'] > 0.3, 'Bullish'] = 1
+  df_results.loc[df_results['compound'] < - 0.3, 'Bearish'] = 1
+  return df_results.to_csv("{} Comment sentiment result.csv".format(channel), header = None, encoding ='utf-8', index = None)
+
+
+
+
+
+
+
+
+
+
+#Extract data to local csv file
+
+df = pd.read_csv('list of subreddits.csv')
+Subreddit = [i for i in df["Subreddit"]]
+
+for i in Subreddit:
+  try:
+    Reddit_extraction(i)
+  except:
+    print("{} is the wrong subreddit name".format(i))
+
+
+
+
+
+
+
+
+
+# Save Sentiment Analysis to local CSV file
+Title_sentiment("wallstreetbets")
+Body_sentiment("wallstreetbets")
+Comment_sentiment("wallstreetbets")
+
+
+
+
+
+
+
+
+
+
+
+
+# Correlation with market movement
+%pip install plotly
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import yfinance as yf
+import plotly.graph_objects as go
+
+#%load_ext lab_black
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+msft = yf.Ticker("^SPX")
+hist = msft.history(period="1y")
+hist["Close"].plot(figsize=(15, 5), title="SPX Price Movement")
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import schedule
+import time
+
+def job():
+    print("I'm working...")
+
+schedule.every(1).minutes.do(job)
+#schedule.every().hour.do(job)
+#schedule.every().day.at("10:30").do(job)
+#schedule.every(5).to(10).minutes.do(job)
+#schedule.every().monday.do(job)
+#schedule.every().wednesday.at("13:15").do(job)
+#schedule.every().minute.at(":17").do(job)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+
+
+
+
