@@ -1,0 +1,220 @@
+%reload_ext autoreload
+%autoreload 2
+import os 
+from flair.data import Sentence
+from flair.models import SequenceTagger
+
+os.path.abspath("models/pytorch_model.bin")
+tagger = SequenceTagger.load("flair/ner-english-ontonotes-large")
+prediction =[]
+results = []
+
+with open('/home/shared/nlp_example/test.txt') as f:
+    lines = f.readlines()
+for line in lines:
+    sentences = Sentence(line)
+    tagger.predict(sentences)
+    prediction.append(sentences)
+for sentence in prediction:
+    results.append(sentence.get_spans('ner'))
+for result in results:
+    print(result)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%reload_ext autoreload
+%autoreload 2
+import os 
+from flair.data import Sentence
+from flair.models import SequenceTagger
+
+os.path.abspath("models/pytorch_model.bin")
+tagger = SequenceTagger.load("flair/ner-english-ontonotes-large")
+
+
+# Part II 
+
+prediction =[]
+results = []
+
+sentences = Sentence(df["Comment"][8])
+#print(sentences)
+tagger.predict(sentences)
+prediction.append(sentences)
+for sentence in prediction:
+    results.append(sentence.get_spans('ner'))
+target_item = [ i for i in results[0] if i.tag == 'ORG']
+
+
+target_item
+
+
+
+
+
+
+
+
+
+
+
+
+
+prediction =[]
+results = []
+
+sentences = Sentence(df["Comment"][11])
+#print(sentences)
+tagger.predict(sentences)
+prediction.append(sentences)
+for sentence in prediction:
+    results.append(sentence.get_spans('ner'))
+target_item = [ i for i in results[0] if i.tag == 'ORG']
+
+
+
+
+
+
+
+
+
+
+
+
+
+lst = []
+lst.clear()
+import re
+pattern = r'"(\w+)"'
+for i in target_item:
+    try:
+        result = re.findall(pattern, str(i))
+        lst.append(result[0])
+    except:
+        continue
+
+
+d = {x:lst.count(x) for x in lst}
+d = sorted(d.items(), key=lambda x: x[1], reverse=True)
+d
+
+
+
+
+
+
+
+
+
+
+
+
+#Part IV,  Ticker Varify
+def check_ticker(ticker):
+    import yfinance as yf
+    if len(yf.Ticker(ticker).history("7d")) > 0:
+        return True
+    else:
+        return False
+
+stock_list = []
+stock_list.clear()
+for i in range(len(d)):
+    if check_ticker(d[i][0]) == True:
+        stock_list.append(d[i])
+
+
+stock_list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+test = [ i for i in results[0] if i.tag == 'ORG']
+str(test[1])
+pattern = r'"(\w+)"'
+result = re.findall(pattern, str(test[1]))
+result
+
+
+
+
+
+
+
+lst = []
+lst.clear()
+import re
+pattern = r'"(\w+)"'
+for i in target_item:
+    try:
+        result = re.findall(pattern, str(i))
+        lst.append(result[0])
+    except:
+        continue
+
+
+d = {x:lst.count(x) for x in lst}
+d = sorted(d.items(), key=lambda x: x[1], reverse=True)
+print(d)
+
+
+def check_ticker(ticker):
+    import yfinance as yf
+    if len(yf.Ticker(ticker).history("7d")) > 0:
+        return True
+    else:
+        return False
+
+stock_list = []
+stock_list.clear()
+for i in range(len(d)):
+    if check_ticker(d[i][0]) == True:
+        stock_list.append(d[i])
+
+
+stock_list[:3]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from difflib import SequenceMatcher
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+
+
+
