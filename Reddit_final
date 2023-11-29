@@ -89,6 +89,21 @@ def Sentiment_Analysis(context):
   return score
 
 
+def comment_detection(sample): # BernoulliNB model
+   trained_data_df = pd.read_csv('/home/zach/ML_trained_data.csv')
+   trained_data = trained_data_df[["Comment",'Target']]
+   x = trained_data["Comment"]
+   y = trained_data["Target"]
+   cv = CountVectorizer()
+   x = cv.fit_transform(x)
+   xtrain, xtest, ytrain, ytest = train_test_split(x, y, 
+                                                test_size=0.25, 
+                                                random_state=42)
+
+   model = BernoulliNB()
+   model.fit(xtrain, ytrain) 
+   data = cv.transform([str(sample)])
+   return model.predict(data)[0]
 
 
 
@@ -96,7 +111,9 @@ def Sentiment_Analysis(context):
 
 
 
-t = 1699419600.0
+
+
+t = 1700542800.0
 def Reddit_extraction(channel):
   sub_id, sub_time, sub_title, sub_body , url1, url2, sub_comments_body, sub_comments_id, sub_comments_time, sub_comments_unikey, sub_author , sub_comments_author = [], [], [], [], [], [], [], [], [], [],[],[]
   bd, cm = [],[]
@@ -109,6 +126,7 @@ def Reddit_extraction(channel):
   from flair.models import SequenceTagger
   os.path.abspath("models/pytorch_model.bin")
   tagger = SequenceTagger.load("flair/ner-english-ontonotes-large")
+  emoji_pattern = r'\!\[img\]\(emote\|t5_2th52\|\d+\)'
 
 
   NO1_ticker_mentioned_in_textbody = []
@@ -136,12 +154,12 @@ def Reddit_extraction(channel):
 
 #extract submission data
 
-  for submission in reddit.subreddit(channel).new(limit = 50): 
+  for submission in reddit.subreddit(channel).new(limit = 20): 
     sub_id.append(submission.id)
     sub_author.append(submission.author)
     sub_time.append(utc_to_datetime(submission.created_utc))
     sub_title.append(submission.title)
-    url1.append(submission.url)
+    url1.append(submission.shortlink)
     sub_body.append(submission.selftext)
     bd.append(submission.selftext)
 
@@ -190,8 +208,8 @@ def Reddit_extraction(channel):
          sub_comments_id.append(top_level_comment.id)
          sub_comments_author.append(top_level_comment.author)
          sub_comments_time.append(utc_to_datetime(top_level_comment.created_utc))
-         sub_comments_body.append(top_level_comment.body)
-         url2.append(submission.url)
+         sub_comments_body.append(re.sub(emoji_pattern, '' , top_level_comment.body))   #remove emoji
+         url2.append('https://www.reddit.com/comments/' + submission.id + '/comment/'+ top_level_comment.id)
          cm.append(top_level_comment.body)
 
          comment_prediction =[]
@@ -243,94 +261,17 @@ def Reddit_extraction(channel):
   submission_df.loc[submission_df['Sentiment Score'] > 0.3, 'Sentiment Result'] = "Bullish"
 
   comments_df.loc[comments_df['Sentiment Score'] < - 0.3, 'Sentiment Result'] = "Bearish"
-  comments_df.loc[ (-0.3 < comments_df['Sentiment Score']) &( comments_df['Sentiment Score'] < 0.3), 'Sentiment Result'] = "Neutral"
+  comments_df.loc[ (-0.3 < comments_df['Sentiment Score']) & ( comments_df['Sentiment Score'] < 0.3), 'Sentiment Result'] = "Neutral"
   comments_df.loc[comments_df['Sentiment Score'] >  0.3, 'Sentiment Result'] = "Bullish"
 
-
-
-  return submission_df.to_excel("{} Submission.xlsx".format(channel), index = None), comments_df.to_excel("{} Comment.xlsx".format(channel), index = None)
-
-
-
+# Remove junk entry:
+  comments_df['Comment Author'].replace('', np.nan, inplace=True)
+  comments_df.dropna(subset=['Comment Author'], inplace=True)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-Reddit_extraction("WallStreetbetsELITE")
-
-
-
-
-
-
-
-
-
-
-
-
-# Sentiment Anaysis
-
-
-def Sentiment_Analysis(context):
-  results = []
-  for line in context:
-    pol_score = sia.polarity_scores(line)
-    pol_score['text'] = line
-    results.append(pol_score)
-  score = [i['compound'] for i in results]
-  return score
-
-def Body_sentiment(channel):
-  bd = set()
-  for submission in reddit.subreddit(channel).new(limit = 200):
-    bd.add(submission.selftext)
-
-  results = []
-  for line in bd:
-    pol_score = sia.polarity_scores(line)
-    pol_score['Body'] = line
-    results.append(pol_score)
-  df_results = pd.DataFrame.from_records(results)
-  df_results['Bullish'] = 0
-  df_results['Bearish'] = 0
-  df_results.loc[df_results['compound'] > 0.3, 'Bullish'] = 1
-  df_results.loc[df_results['compound'] < - 0.3, 'Bearish'] = 1
-  return df_results.to_csv("{} Body sentiment result.csv".format(channel), header = None, encoding ='utf-8', index = None)
-
-def Comment_sentiment(channel):
-  from praw.models import MoreComments
-  cm = set()
-  for submission in reddit.subreddit(channel).new(limit = 200):
-    for top_level_comment in submission.comments:
-      if isinstance(top_level_comment, MoreComments):
-        continue
-      cm.add(top_level_comment.body)
-
-  results = []
-  for line in cm:
-    pol_score = sia.polarity_scores(line)
-    pol_score['Comment'] = line
-    results.append(pol_score)
-  df_results = pd.DataFrame.from_records(results)
-  df_results['Bullish'] = 0
-  df_results['Bearish'] = 0
-  df_results.loc[df_results['compound'] > 0.3, 'Bullish'] = 1
-  df_results.loc[df_results['compound'] < - 0.3, 'Bearish'] = 1
-  return df_results.to_csv("{} Comment sentiment result.csv".format(channel), header = None, encoding ='utf-8', index = None)
-
-
-
+  return submission_df.to_csv("{} Submission.csv".format(channel), encoding ='utf-8', index = None), comments_df.to_csv("{} Comment.csv".format(channel), encoding ='utf-8', index = None)
 
 
 
@@ -356,50 +297,17 @@ for i in Subreddit:
 
 
 
-
-# Save Sentiment Analysis to local CSV file
-Title_sentiment("wallstreetbets")
-Body_sentiment("wallstreetbets")
-Comment_sentiment("wallstreetbets")
-
-
-
-
-
+# Detect further junck comments with Trained model
+df = pd.read_csv('/home/zach/subreddits Comment.csv')
+df["Comment Detection"] = ''
+for i in range(len(df)):
+    if comment_detection(df['Comment'][i]) == 1:
+        df["Comment Detection"][i] = 'Junk Comment'
+    else:
+        df["Comment Detection"][i] = ''
 
 
-
-
-
-
-
-# Correlation with market movement
-%pip install plotly
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import yfinance as yf
-import plotly.graph_objects as go
-
-#%load_ext lab_black
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-msft = yf.Ticker("^SPX")
-hist = msft.history(period="1y")
-hist["Close"].plot(figsize=(15, 5), title="SPX Price Movement")
-plt.show()
+df.to_csv("comment_ML.csv", encoding ='utf-8', index = None)
 
 
 
@@ -421,23 +329,12 @@ plt.show()
 
 
 
-import schedule
-import time
 
-def job():
-    print("I'm working...")
 
-schedule.every(1).minutes.do(job)
-#schedule.every().hour.do(job)
-#schedule.every().day.at("10:30").do(job)
-#schedule.every(5).to(10).minutes.do(job)
-#schedule.every().monday.do(job)
-#schedule.every().wednesday.at("13:15").do(job)
-#schedule.every().minute.at(":17").do(job)
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+
+
+
 
 
 
