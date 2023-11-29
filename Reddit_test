@@ -218,3 +218,153 @@ def similar(a, b):
 
 
 
+
+
+
+
+t = 1700283600.0
+url1 = []
+cm_body = []
+cm_author = []
+ncm_body = []
+ncm_author = []
+for submission in reddit.subreddit("wallstreetbets").new(limit = 100): 
+  for top_level_comment in submission.comments:
+      if isinstance(top_level_comment, MoreComments):
+        continue
+      if top_level_comment.created_utc >= t:
+    
+ # sub_id.append(submission.id)
+        cm_author.append(top_level_comment.author)
+  #sub_time.append(submission.created_utc)
+  #sub_title.append(submission.title)
+        url1.append(submission.shortlink) 
+        cm_body.append(top_level_comment.body)
+        if top_level_comment.author == None:
+           ncm_body.append(top_level_comment.body)
+           ncm_author.append(top_level_comment.author)
+
+
+
+
+
+
+
+
+
+
+
+
+%pip install emoji
+%pip install demoji
+import emoji
+import demoji
+
+txt = 'Walmart haz Armed Tactical Swat Team security now. SHITZ about to jump off. ![img](emote|t5_2th52|4267)![img](emote|t5_2th52|4267)![img](emote|t5_2th52|4271)![img](emote|t5_2th52|4271)![img](emote|t5_2th52|18632)![img](emote|t5_2th52|18632)![img](emote|t5_2th52|18632)![img](emote|t5_2th52|18632)'
+no_emoji_txt = demoji.replace(txt, '')
+no_emoji_txt 
+
+
+
+
+# Detect further junck comments with Trained model
+import pandas as pd
+import zipfile
+import pickle
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import confusion_matrix, classification_report
+#
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB
+
+
+
+
+trained_data_df = pd.read_csv('/home/zach/nlp_example/ML_trained_data.csv')
+trained_data = trained_data_df[["Comment",'Target']]
+
+
+
+
+
+
+
+
+
+#trained_data
+#trained_data  BernoulliNB model
+
+x = trained_data["Comment"]
+y = trained_data["Target"]
+
+cv = CountVectorizer()
+x = cv.fit_transform(x)
+xtrain, xtest, ytrain, ytest = train_test_split(x, y, 
+                                                test_size=0.2, 
+                                                random_state=42)
+
+model = BernoulliNB()
+model.fit(xtrain, ytrain)
+print(model.score(xtest, ytest))
+
+
+
+
+
+
+
+#Classification models
+# k-nearest neighbors (knn)
+x = trained_data["Comment"]
+y = trained_data["Target"]
+
+cv = CountVectorizer()
+x = cv.fit_transform(x)
+xtrain, xtest, ytrain, ytest = train_test_split(x, y, 
+                                                test_size=0.2, 
+                                                random_state=42)
+
+
+
+
+
+
+
+
+
+# Logistic Regression
+x = trained_data["Comment"]
+y = trained_data["Target"]
+
+cv = CountVectorizer()
+x = cv.fit_transform(x)
+xtrain, xtest, ytrain, ytest = train_test_split(x, y, 
+                                                test_size=0.2, 
+                                                random_state=42)
+
+
+
+
+sample = "Lack of information!" 
+data = cv.transform([sample])
+model.predict(data)[0]
+
+
+
+
+
+
+
+#remove emoji
+import re
+emoji_pattern = r'\!\[img\]\(emote\|t5_2th52\|\d+\)'
+txt = 'Full disclosure: I have close to half a milli in this ![img](emote|t5_2th52|29637)'
+
+
+
+
+
+re.sub(emoji_pattern,'', txt)
